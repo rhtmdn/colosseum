@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import Sidebar, { MobileHeader } from './components/layout/Sidebar';
 import Modal from './components/common/Modal';
 import AddTradeForm from './components/trades/AddTradeForm';
@@ -17,7 +17,7 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="flex min-h-screen bg-gray-950">
         <Sidebar
           onAddTrade={() => setShowAddTrade(true)}
@@ -111,6 +111,6 @@ export default function App() {
           onClose={() => setShowImportCsv(false)}
         />
       </Modal>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

@@ -45,7 +45,7 @@ export default function PnlBarChart({ data }: Props) {
                 fontSize: '12px',
               }}
               labelFormatter={(d) => format(parseISO(d as string), 'MMM d, yyyy')}
-              formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
+              formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'P&L']}
             />
             <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
               {data.map((entry, idx) => (

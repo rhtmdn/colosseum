@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, format, isSameMonth, isToday,
-  addMonths, subMonths, parseISO, getWeek,
+  addMonths, subMonths, parseISO,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Trade, DailyStats } from '../../types';

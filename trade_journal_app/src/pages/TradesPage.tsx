@@ -3,7 +3,7 @@ import { Search, SlidersHorizontal } from 'lucide-react';
 import TradeTable from '../components/trades/TradeTable';
 import TradeDetail from '../components/trades/TradeDetail';
 import Modal from '../components/common/Modal';
-import type { Trade, FilterState, Side, AssetClass, TradeStatus } from '../types';
+import type { Trade, FilterState, Side, TradeStatus } from '../types';
 
 interface Props {
   trades: Trade[];
@@ -21,10 +21,10 @@ export default function TradesPage({ trades, filter, setFilter, onDelete, instru
 
   const searched = search
     ? trades.filter(t =>
-        t.instrument.toLowerCase().includes(search.toLowerCase()) ||
-        t.strategy.toLowerCase().includes(search.toLowerCase()) ||
-        t.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
-      )
+      t.instrument.toLowerCase().includes(search.toLowerCase()) ||
+      t.strategy.toLowerCase().includes(search.toLowerCase()) ||
+      t.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
+    )
     : trades;
 
   const selectClass = "bg-surface-2 border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent";
@@ -51,9 +51,8 @@ export default function TradesPage({ trades, filter, setFilter, onDelete, instru
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-            showFilters ? 'bg-accent text-white' : 'bg-surface border border-border text-gray-400 hover:text-white'
-          }`}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${showFilters ? 'bg-accent text-white' : 'bg-surface border border-border text-gray-400 hover:text-white'
+            }`}
         >
           <SlidersHorizontal size={16} />
           Filters

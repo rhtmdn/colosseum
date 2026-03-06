@@ -28,7 +28,7 @@ export default function AnalyticsPage({ trades, stats, dailyStats, equityCurve }
     : 0;
 
   const greenDays = dailyStats.filter(d => d.pnl > 0).length;
-  const redDays = dailyStats.filter(d => d.pnl < 0).length;
+
   const totalDays = dailyStats.length;
 
   return (

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { DailyStats } from '../../types';
-import { parseISO, format, getDay } from 'date-fns';
+import { parseISO, getDay } from 'date-fns';
 import { formatCurrency } from '../../utils/calculations';
 
 interface Props {
@@ -24,14 +24,7 @@ export default function PerformanceHeatmap({ dailyStats }: Props) {
     return result;
   }, [dailyStats]);
 
-  const byHour = useMemo(() => {
-    const hours: { hour: string; pnl: number; trades: number }[] = [];
-    for (let h = 6; h <= 22; h++) {
-      hours.push({ hour: `${h}:00`, pnl: 0, trades: 0 });
-    }
-    // Simplified — would need trade-level time data for real granularity
-    return hours;
-  }, []);
+
 
   const maxPnl = Math.max(...byDayOfWeek.map(d => Math.abs(d.pnl)), 1);
 
@@ -44,8 +37,8 @@ export default function PerformanceHeatmap({ dailyStats }: Props) {
           const bg = d.pnl > 0
             ? `rgba(34, 197, 94, ${0.1 + intensity * 0.5})`
             : d.pnl < 0
-            ? `rgba(239, 68, 68, ${0.1 + intensity * 0.5})`
-            : 'rgba(107, 114, 128, 0.1)';
+              ? `rgba(239, 68, 68, ${0.1 + intensity * 0.5})`
+              : 'rgba(107, 114, 128, 0.1)';
 
           return (
             <div
