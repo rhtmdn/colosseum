@@ -33,6 +33,7 @@ export interface Portfolio {
   name: string;
   color: string;
   createdAt: string;
+  initialBalance?: number;
 }
 
 export interface DailyStats {
@@ -45,6 +46,8 @@ export interface DailyStats {
 }
 
 export interface PortfolioStats {
+  initialBalance: number;
+  currentBalance: number;
   totalTrades: number;
   totalPnl: number;
   winRate: number;

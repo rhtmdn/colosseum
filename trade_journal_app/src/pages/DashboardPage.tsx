@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Target, DollarSign, BarChart2, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, DollarSign, BarChart2, Activity, Wallet } from 'lucide-react';
 import StatCard from '../components/common/StatCard';
 import EquityChart from '../components/dashboard/EquityChart';
 import PnlBarChart from '../components/dashboard/PnlBarChart';
@@ -27,7 +27,14 @@ export default function DashboardPage({ trades, stats, dailyStats, equityCurve }
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <StatCard
+          label="Account Balance"
+          value={formatCurrency(stats.currentBalance)}
+          trend={stats.currentBalance >= stats.initialBalance ? 'up' : 'down'}
+          icon={<Wallet size={16} />}
+          subValue={`Initial: ${formatCurrency(stats.initialBalance)}`}
+        />
         <StatCard
           label="Total P&L"
           value={formatCurrency(stats.totalPnl)}

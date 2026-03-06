@@ -29,7 +29,7 @@ interface SidebarProps {
   portfolios: Portfolio[];
   activePortfolio: Portfolio;
   onSwitchPortfolio: (id: string) => void;
-  onAddPortfolio: (name: string, color: string) => void;
+  onAddPortfolio: (name: string, color: string, initialBalance: number) => void;
   onDeletePortfolio: (id: string) => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
@@ -46,11 +46,13 @@ export default function Sidebar({
   const [addingPortfolio, setAddingPortfolio] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PORTFOLIO_COLORS[0]);
+  const [initialDeposit, setInitialDeposit] = useState<string>('');
 
   const handleAddPortfolio = () => {
     if (newName.trim()) {
-      onAddPortfolio(newName.trim(), newColor);
+      onAddPortfolio(newName.trim(), newColor, parseFloat(initialDeposit) || 0);
       setNewName('');
+      setInitialDeposit('');
       setAddingPortfolio(false);
     }
   };
@@ -123,8 +125,15 @@ export default function Sidebar({
                   autoFocus
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddPortfolio()}
                   placeholder="Portfolio name"
+                  className="w-full bg-surface border border-border rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent"
+                />
+                <input
+                  type="number"
+                  value={initialDeposit}
+                  onChange={e => setInitialDeposit(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddPortfolio()}
+                  placeholder="Initial deposit (optional)"
                   className="w-full bg-surface border border-border rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent"
                 />
                 <div className="flex gap-1">

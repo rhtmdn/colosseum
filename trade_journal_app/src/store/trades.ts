@@ -7,8 +7,8 @@ const PORTFOLIOS_KEY = 'tj_portfolios';
 const ACTIVE_PORTFOLIO_KEY = 'tj_active_portfolio';
 
 const DEFAULT_PORTFOLIOS: Portfolio[] = [
-  { id: 'default', name: 'Main Portfolio', color: '#6366f1', createdAt: new Date().toISOString() },
-  { id: 'paper', name: 'Paper Trading', color: '#22c55e', createdAt: new Date().toISOString() },
+  { id: 'default', name: 'Main Portfolio', color: '#6366f1', createdAt: new Date().toISOString(), initialBalance: 10000 },
+  { id: 'paper', name: 'Paper Trading', color: '#22c55e', createdAt: new Date().toISOString(), initialBalance: 50000 },
 ];
 
 // --- Portfolios ---
@@ -249,7 +249,7 @@ function generateMockTrades(): Trade[] {
     const exitPrice = entryPrice + (side === 'LONG' ? priceMove : -priceMove);
     const quantity = instrument === 'XAUUSD' ? Math.ceil(Math.random() * 5) :
       instrument === 'ES' || instrument === 'NQ' ? Math.ceil(Math.random() * 3) :
-      Math.ceil(Math.random() * 100);
+        Math.ceil(Math.random() * 100);
 
     const fees = Math.random() * 10 + 1;
     const stopDist = Math.abs(priceMove) * (0.3 + Math.random() * 0.7);

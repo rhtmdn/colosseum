@@ -49,7 +49,7 @@ export function getDailyStats(trades: Trade[]): DailyStats[] {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function getPortfolioStats(trades: Trade[]): PortfolioStats {
+export function getPortfolioStats(trades: Trade[], initialBalance: number = 0): PortfolioStats {
   const closed = trades.filter(t => t.status !== 'OPEN');
   const wins = closed.filter(t => t.status === 'WIN');
   const losses = closed.filter(t => t.status === 'LOSS');
@@ -117,6 +117,8 @@ export function getPortfolioStats(trades: Trade[]): PortfolioStats {
     : null;
 
   return {
+    initialBalance,
+    currentBalance: initialBalance + totalPnl,
     totalTrades: closed.length,
     totalPnl,
     winRate,
@@ -137,9 +139,9 @@ export function getPortfolioStats(trades: Trade[]): PortfolioStats {
   };
 }
 
-export function getEquityCurve(trades: Trade[]): { date: string; equity: number }[] {
+export function getEquityCurve(trades: Trade[], initialBalance: number = 0): { date: string; equity: number }[] {
   const daily = getDailyStats(trades);
-  let cum = 0;
+  let cum = initialBalance;
   return daily.map(d => {
     cum += d.pnl;
     return { date: d.date, equity: cum };

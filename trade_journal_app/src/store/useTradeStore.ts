@@ -62,8 +62,8 @@ export function useTradeStore() {
     setDoc(DOC_REF, { activePortfolioId: id }, { merge: true }).catch(console.error);
   }, []);
 
-  const addPortfolio = useCallback((name: string, color: string) => {
-    const p: Portfolio = { id: crypto.randomUUID(), name, color, createdAt: new Date().toISOString() };
+  const addPortfolio = useCallback((name: string, color: string, initialBalance: number = 0) => {
+    const p: Portfolio = { id: crypto.randomUUID(), name, color, createdAt: new Date().toISOString(), initialBalance };
     setPortfolios(prev => {
       const next = [...prev, p];
       savePortfolios(next);
@@ -149,9 +149,9 @@ export function useTradeStore() {
     });
   }, [portfolioTrades, filter]);
 
-  const stats = useMemo(() => getPortfolioStats(filteredTrades), [filteredTrades]);
+  const stats = useMemo(() => getPortfolioStats(filteredTrades, activePortfolio?.initialBalance || 0), [filteredTrades, activePortfolio?.initialBalance]);
   const dailyStats = useMemo(() => getDailyStats(filteredTrades), [filteredTrades]);
-  const equityCurve = useMemo(() => getEquityCurve(filteredTrades), [filteredTrades]);
+  const equityCurve = useMemo(() => getEquityCurve(filteredTrades, activePortfolio?.initialBalance || 0), [filteredTrades, activePortfolio?.initialBalance]);
 
   const instruments = useMemo(() => [...new Set(portfolioTrades.map(t => t.instrument))].sort(), [portfolioTrades]);
   const strategies = useMemo(() => [...new Set(portfolioTrades.map(t => t.strategy))].filter(Boolean).sort(), [portfolioTrades]);
