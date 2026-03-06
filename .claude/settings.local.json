@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.tradezella.com)",
+      "WebFetch(domain:pnllog.xyz)",
+      "WebFetch(domain:app.pnllog.xyz)",
+      "Bash(npm create vite@latest . -- --template react-ts)",
+      "Bash(npm create vite@latest trade_journal_app -- --template react-ts)",
+      "Bash(npm install)",
+      "Bash(npm install -D tailwindcss @tailwindcss/vite)",
+      "Bash(npm install react-router-dom recharts date-fns lucide-react)",
+      "Bash(npx tsc --noEmit)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
