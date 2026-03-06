@@ -1,4 +1,6 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import type { Trade, FilterState, JournalEntry, Portfolio } from '../types';
 import {
   loadTrades, saveTrades, createTrade, loadJournalEntries, saveJournalEntries,
@@ -18,12 +20,36 @@ const defaultFilter: FilterState = {
   tags: [],
 };
 
+const DOC_REF = doc(db, 'users', 'default_user_v1');
+
 export function useTradeStore() {
   const [trades, setTrades] = useState<Trade[]>(loadTrades);
   const [filter, setFilter] = useState<FilterState>(defaultFilter);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(loadJournalEntries);
   const [portfolios, setPortfolios] = useState<Portfolio[]>(loadPortfolios);
   const [activePortfolioId, setActivePortfolioIdState] = useState<string>(loadActivePortfolioId);
+
+  // Firestore Sync Effect
+  useEffect(() => {
+    const unsub = onSnapshot(DOC_REF, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.trades) { setTrades(data.trades); saveTrades(data.trades); }
+        if (data.portfolios) { setPortfolios(data.portfolios); savePortfolios(data.portfolios); }
+        if (data.activePortfolioId) { setActivePortfolioIdState(data.activePortfolioId); saveActivePortfolioId(data.activePortfolioId); }
+        if (data.journalEntries) { setJournalEntries(data.journalEntries); saveJournalEntries(data.journalEntries); }
+      } else {
+        // Init cloud database with local data if it doesn't exist yet
+        setDoc(DOC_REF, {
+          trades: loadTrades(),
+          portfolios: loadPortfolios(),
+          activePortfolioId: loadActivePortfolioId(),
+          journalEntries: loadJournalEntries()
+        }, { merge: true }).catch(console.error);
+      }
+    });
+    return unsub;
+  }, []);
 
   const activePortfolio = useMemo(
     () => portfolios.find(p => p.id === activePortfolioId) || portfolios[0],
@@ -33,6 +59,7 @@ export function useTradeStore() {
   const setActivePortfolioId = useCallback((id: string) => {
     setActivePortfolioIdState(id);
     saveActivePortfolioId(id);
+    setDoc(DOC_REF, { activePortfolioId: id }, { merge: true }).catch(console.error);
   }, []);
 
   const addPortfolio = useCallback((name: string, color: string) => {
@@ -40,6 +67,7 @@ export function useTradeStore() {
     setPortfolios(prev => {
       const next = [...prev, p];
       savePortfolios(next);
+      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
       return next;
     });
     return p;
@@ -49,12 +77,14 @@ export function useTradeStore() {
     setPortfolios(prev => {
       const next = prev.filter(p => p.id !== id);
       savePortfolios(next);
+      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
       return next;
     });
     // Remove trades in that portfolio
     setTrades(prev => {
       const next = prev.filter(t => t.portfolioId !== id);
       saveTrades(next);
+      setDoc(DOC_REF, { trades: next }, { merge: true }).catch(console.error);
       return next;
     });
   }, []);
@@ -63,6 +93,7 @@ export function useTradeStore() {
     setPortfolios(prev => {
       const next = prev.map(p => p.id === id ? { ...p, name } : p);
       savePortfolios(next);
+      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
       return next;
     });
   }, []);
@@ -71,6 +102,7 @@ export function useTradeStore() {
     setTrades(prev => {
       const next = updater(prev);
       saveTrades(next);
+      setDoc(DOC_REF, { trades: next }, { merge: true }).catch(console.error);
       return next;
     });
   }, []);
@@ -129,6 +161,7 @@ export function useTradeStore() {
     setJournalEntries(prev => {
       const next = [entry, ...prev.filter(e => e.date !== entry.date)];
       saveJournalEntries(next);
+      setDoc(DOC_REF, { journalEntries: next }, { merge: true }).catch(console.error);
       return next;
     });
   }, []);
