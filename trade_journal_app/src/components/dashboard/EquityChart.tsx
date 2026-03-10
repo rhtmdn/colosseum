@@ -52,7 +52,7 @@ export default function EquityChart({ data }: Props) {
                 fontSize: '12px',
               }}
               labelFormatter={(d) => format(parseISO(d as string), 'MMM d, yyyy')}
-              formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Equity']}
+              formatter={(value: number | string | undefined) => [`$${Number(value || 0).toFixed(2)}`, 'Equity']}
             />
             <Area
               type="monotone"
