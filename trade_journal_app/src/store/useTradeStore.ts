@@ -35,7 +35,16 @@ export function useTradeStore() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.trades) { setTrades(data.trades); saveTrades(data.trades); }
-        if (data.portfolios) { setPortfolios(data.portfolios); savePortfolios(data.portfolios); }
+        if (data.portfolios) { 
+          // Migrate portfolios from firestore
+          const migratedPortfolios = data.portfolios.map((p: any) => ({
+            ...p,
+            initialBalance: p.initialBalance ?? 0,
+            transactions: p.transactions ?? []
+          }));
+          setPortfolios(migratedPortfolios); 
+          savePortfolios(migratedPortfolios); 
+        }
         if (data.activePortfolioId) { setActivePortfolioIdState(data.activePortfolioId); saveActivePortfolioId(data.activePortfolioId); }
         if (data.journalEntries) { setJournalEntries(data.journalEntries); saveJournalEntries(data.journalEntries); }
       } else {

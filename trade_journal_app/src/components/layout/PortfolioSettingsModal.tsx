@@ -18,7 +18,7 @@ export default function PortfolioSettingsModal({
 }: Props) {
   // Initial balance editing
   const [editingBalance, setEditingBalance] = useState(false);
-  const [balanceInput, setBalanceInput] = useState(portfolio.initialBalance.toString());
+  const [balanceInput, setBalanceInput] = useState((portfolio.initialBalance || 0).toString());
 
   // Transaction form
   const [txType, setTxType] = useState<Transaction['type']>('DEPOSIT');
@@ -58,7 +58,7 @@ export default function PortfolioSettingsModal({
             </label>
             {!editingBalance && (
               <button
-                onClick={() => { setBalanceInput(portfolio.initialBalance.toString()); setEditingBalance(true); }}
+                onClick={() => { setBalanceInput((portfolio.initialBalance || 0).toString()); setEditingBalance(true); }}
                 className="flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
               >
                 <Pencil size={12} />
@@ -96,7 +96,7 @@ export default function PortfolioSettingsModal({
             </div>
           ) : (
             <p className="text-2xl font-bold text-white">
-              ${portfolio.initialBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              ${(portfolio.initialBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           )}
         </div>
