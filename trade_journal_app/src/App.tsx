@@ -4,6 +4,7 @@ import Sidebar, { MobileHeader } from './components/layout/Sidebar';
 import Modal from './components/common/Modal';
 import AddTradeForm from './components/trades/AddTradeForm';
 import CsvUpload from './components/trades/CsvUpload';
+import PortfolioSettingsModal from './components/layout/PortfolioSettingsModal';
 import DashboardPage from './pages/DashboardPage';
 import CalendarPage from './pages/CalendarPage';
 import TradesPage from './pages/TradesPage';
@@ -14,6 +15,7 @@ export default function App() {
   const store = useTradeStore();
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [showImportCsv, setShowImportCsv] = useState(false);
+  const [showPortfolioSettings, setShowPortfolioSettings] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -27,6 +29,7 @@ export default function App() {
           onSwitchPortfolio={store.setActivePortfolioId}
           onAddPortfolio={store.addPortfolio}
           onDeletePortfolio={store.deletePortfolio}
+          onPortfolioSettings={() => setShowPortfolioSettings(true)}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
         />
@@ -111,6 +114,19 @@ export default function App() {
           onClose={() => setShowImportCsv(false)}
         />
       </Modal>
+
+      {/* Portfolio Settings Modal */}
+      {store.activePortfolio && (
+        <PortfolioSettingsModal
+          open={showPortfolioSettings}
+          onClose={() => setShowPortfolioSettings(false)}
+          portfolio={store.activePortfolio}
+          onUpdatePortfolio={store.updatePortfolio}
+          onAddTransaction={store.addTransaction}
+          onDeleteTransaction={store.deleteTransaction}
+        />
+      )}
     </HashRouter>
   );
 }
+

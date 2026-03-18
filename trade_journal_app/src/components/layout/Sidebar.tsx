@@ -12,6 +12,7 @@ import {
   Trash2,
   X,
   Menu,
+  Settings,
 } from 'lucide-react';
 import type { Portfolio } from '../../types';
 import ColosseumLogo from './ColosseumLogo';
@@ -31,6 +32,7 @@ interface SidebarProps {
   onSwitchPortfolio: (id: string) => void;
   onAddPortfolio: (name: string, color: string, initialBalance: number) => void;
   onDeletePortfolio: (id: string) => void;
+  onPortfolioSettings: () => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
@@ -39,7 +41,7 @@ const PORTFOLIO_COLORS = ['#6366f1', '#22c55e', '#ef4444', '#f59e0b', '#06b6d4',
 
 export default function Sidebar({
   onAddTrade, onImportCsv, portfolios, activePortfolio,
-  onSwitchPortfolio, onAddPortfolio, onDeletePortfolio,
+  onSwitchPortfolio, onAddPortfolio, onDeletePortfolio, onPortfolioSettings,
   mobileOpen, onMobileClose,
 }: SidebarProps) {
   const [portfolioOpen, setPortfolioOpen] = useState(false);
@@ -76,19 +78,28 @@ export default function Sidebar({
 
       {/* Portfolio Switcher */}
       <div className="px-3 pt-3">
-        <button
-          onClick={() => setPortfolioOpen(!portfolioOpen)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-border hover:border-gray-600 transition-colors cursor-pointer"
-        >
-          <span
-            className="w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: activePortfolio.color }}
-          />
-          <span className="text-sm font-medium text-white truncate flex-1 text-left">
-            {activePortfolio.name}
-          </span>
-          <ChevronDown size={14} className={`text-gray-500 transition-transform ${portfolioOpen ? 'rotate-180' : ''}`} />
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setPortfolioOpen(!portfolioOpen)}
+            className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-border hover:border-gray-600 transition-colors cursor-pointer"
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: activePortfolio.color }}
+            />
+            <span className="text-sm font-medium text-white truncate flex-1 text-left">
+              {activePortfolio.name}
+            </span>
+            <ChevronDown size={14} className={`text-gray-500 transition-transform ${portfolioOpen ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            onClick={onPortfolioSettings}
+            className="p-2 rounded-lg bg-surface-2 border border-border hover:border-gray-600 text-gray-500 hover:text-white transition-colors cursor-pointer shrink-0"
+            title="Portfolio Settings"
+          >
+            <Settings size={14} />
+          </button>
+        </div>
 
         {portfolioOpen && (
           <div className="mt-1 bg-surface-2 border border-border rounded-lg overflow-hidden">

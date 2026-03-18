@@ -28,12 +28,23 @@ export interface Trade {
   status: TradeStatus;
 }
 
+export type TransactionType = 'DEPOSIT' | 'WITHDRAWAL';
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  date: string; // ISO date string
+  note: string;
+}
+
 export interface Portfolio {
   id: string;
   name: string;
   color: string;
   createdAt: string;
-  initialBalance?: number;
+  initialBalance: number;
+  transactions: Transaction[];
 }
 
 export interface DailyStats {

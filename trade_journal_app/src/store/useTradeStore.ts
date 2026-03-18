@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Trade, FilterState, JournalEntry, Portfolio } from '../types';
+import type { Trade, FilterState, JournalEntry, Portfolio, Transaction } from '../types';
 import {
   loadTrades, saveTrades, createTrade, loadJournalEntries, saveJournalEntries,
   loadPortfolios, savePortfolios, loadActivePortfolioId, saveActivePortfolioId,
@@ -63,7 +63,7 @@ export function useTradeStore() {
   }, []);
 
   const addPortfolio = useCallback((name: string, color: string, initialBalance: number = 0) => {
-    const p: Portfolio = { id: crypto.randomUUID(), name, color, createdAt: new Date().toISOString(), initialBalance };
+    const p: Portfolio = { id: crypto.randomUUID(), name, color, createdAt: new Date().toISOString(), initialBalance, transactions: [] };
     setPortfolios(prev => {
       const next = [...prev, p];
       savePortfolios(next);
@@ -92,6 +92,47 @@ export function useTradeStore() {
   const renamePortfolio = useCallback((id: string, name: string) => {
     setPortfolios(prev => {
       const next = prev.map(p => p.id === id ? { ...p, name } : p);
+      savePortfolios(next);
+      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+  }, []);
+
+  const updatePortfolio = useCallback((id: string, updates: Partial<Pick<Portfolio, 'initialBalance' | 'name' | 'color'>>) => {
+    setPortfolios(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...updates } : p);
+      savePortfolios(next);
+      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+  }, []);
+
+  const addTransaction = useCallback((portfolioId: string, type: Transaction['type'], amount: number, note: string = '') => {
+    const tx: Transaction = {
+      id: crypto.randomUUID(),
+      type,
+      amount: Math.abs(amount),
+      date: new Date().toISOString(),
+      note,
+    };
+    setPortfolios(prev => {
+      const next = prev.map(p => {
+        if (p.id !== portfolioId) return p;
+        return { ...p, transactions: [tx, ...(p.transactions || [])] };
+      });
+      savePortfolios(next);
+      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+    return tx;
+  }, []);
+
+  const deleteTransaction = useCallback((portfolioId: string, transactionId: string) => {
+    setPortfolios(prev => {
+      const next = prev.map(p => {
+        if (p.id !== portfolioId) return p;
+        return { ...p, transactions: (p.transactions || []).filter(tx => tx.id !== transactionId) };
+      });
       savePortfolios(next);
       setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
       return next;
@@ -149,9 +190,16 @@ export function useTradeStore() {
     });
   }, [portfolioTrades, filter]);
 
-  const stats = useMemo(() => getPortfolioStats(filteredTrades, activePortfolio?.initialBalance || 0), [filteredTrades, activePortfolio?.initialBalance]);
+  const transactionTotal = useMemo(() => {
+    const txns = activePortfolio?.transactions || [];
+    return txns.reduce((sum, tx) => sum + (tx.type === 'DEPOSIT' ? tx.amount : -tx.amount), 0);
+  }, [activePortfolio?.transactions]);
+
+  const effectiveBalance = (activePortfolio?.initialBalance || 0) + transactionTotal;
+
+  const stats = useMemo(() => getPortfolioStats(filteredTrades, effectiveBalance), [filteredTrades, effectiveBalance]);
   const dailyStats = useMemo(() => getDailyStats(filteredTrades), [filteredTrades]);
-  const equityCurve = useMemo(() => getEquityCurve(filteredTrades, activePortfolio?.initialBalance || 0), [filteredTrades, activePortfolio?.initialBalance]);
+  const equityCurve = useMemo(() => getEquityCurve(filteredTrades, effectiveBalance), [filteredTrades, effectiveBalance]);
 
   const instruments = useMemo(() => [...new Set(portfolioTrades.map(t => t.instrument))].sort(), [portfolioTrades]);
   const strategies = useMemo(() => [...new Set(portfolioTrades.map(t => t.strategy))].filter(Boolean).sort(), [portfolioTrades]);
@@ -191,5 +239,8 @@ export function useTradeStore() {
     addPortfolio,
     deletePortfolio,
     renamePortfolio,
+    updatePortfolio,
+    addTransaction,
+    deleteTransaction,
   };
 }

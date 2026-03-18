@@ -7,8 +7,8 @@ const PORTFOLIOS_KEY = 'tj_portfolios';
 const ACTIVE_PORTFOLIO_KEY = 'tj_active_portfolio';
 
 const DEFAULT_PORTFOLIOS: Portfolio[] = [
-  { id: 'default', name: 'Main Portfolio', color: '#6366f1', createdAt: new Date().toISOString(), initialBalance: 10000 },
-  { id: 'paper', name: 'Paper Trading', color: '#22c55e', createdAt: new Date().toISOString(), initialBalance: 50000 },
+  { id: 'default', name: 'Main Portfolio', color: '#6366f1', createdAt: new Date().toISOString(), initialBalance: 10000, transactions: [] },
+  { id: 'paper', name: 'Paper Trading', color: '#22c55e', createdAt: new Date().toISOString(), initialBalance: 50000, transactions: [] },
 ];
 
 // --- Portfolios ---
@@ -19,7 +19,13 @@ export function loadPortfolios(): Portfolio[] {
     savePortfolios(DEFAULT_PORTFOLIOS);
     return DEFAULT_PORTFOLIOS;
   }
-  return JSON.parse(raw);
+  // Migrate portfolios missing the transactions field
+  const parsed: Portfolio[] = JSON.parse(raw);
+  return parsed.map(p => ({
+    ...p,
+    initialBalance: p.initialBalance ?? 0,
+    transactions: p.transactions ?? [],
+  }));
 }
 
 export function savePortfolios(portfolios: Portfolio[]): void {
