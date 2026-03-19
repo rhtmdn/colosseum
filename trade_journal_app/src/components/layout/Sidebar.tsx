@@ -106,7 +106,7 @@ export default function Sidebar({
             {portfolios.map(p => (
               <div
                 key={p.id}
-                className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors ${p.id === activePortfolio.id ? 'bg-accent/10 text-white' : 'text-gray-400 hover:text-white hover:bg-surface-3'
+                className={`group flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors ${p.id === activePortfolio.id ? 'bg-accent/10 text-white' : 'text-gray-400 hover:text-white hover:bg-surface-3'
                   }`}
               >
                 <button
@@ -118,7 +118,12 @@ export default function Sidebar({
                 </button>
                 {portfolios.length > 1 && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onDeletePortfolio(p.id); }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      if (window.confirm('Are you sure you want to delete this portfolio and all its trades?')) {
+                        onDeletePortfolio(p.id); 
+                      }
+                    }}
                     className="p-1 text-gray-600 hover:text-loss rounded cursor-pointer opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity"
                     style={{ opacity: undefined }}
                     onMouseEnter={e => (e.currentTarget.style.opacity = '1')}

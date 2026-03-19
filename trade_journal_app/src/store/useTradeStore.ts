@@ -96,7 +96,15 @@ export function useTradeStore() {
       setDoc(DOC_REF, { trades: next }, { merge: true }).catch(console.error);
       return next;
     });
-  }, []);
+    
+    // Switch active portfolio if we are deleting it
+    if (activePortfolioId === id) {
+      const fallback = portfolios.find(p => p.id !== id);
+      if (fallback) {
+        setActivePortfolioId(fallback.id);
+      }
+    }
+  }, [activePortfolioId, portfolios, setActivePortfolioId]);
 
   const renamePortfolio = useCallback((id: string, name: string) => {
     setPortfolios(prev => {
