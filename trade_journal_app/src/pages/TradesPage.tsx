@@ -10,11 +10,12 @@ interface Props {
   filter: FilterState;
   setFilter: (f: FilterState) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<Trade>) => void;
   instruments: string[];
   strategies: string[];
 }
 
-export default function TradesPage({ trades, filter, setFilter, onDelete, instruments, strategies }: Props) {
+export default function TradesPage({ trades, filter, setFilter, onDelete, onUpdate, instruments, strategies }: Props) {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -151,7 +152,16 @@ export default function TradesPage({ trades, filter, setFilter, onDelete, instru
         title="Trade Detail"
         width="max-w-lg"
       >
-        {selectedTrade && <TradeDetail trade={selectedTrade} />}
+        {selectedTrade && (
+          <TradeDetail
+            trade={selectedTrade}
+            onUpdate={(id, updates) => {
+              onUpdate(id, updates);
+              setSelectedTrade(prev => prev ? { ...prev, ...updates } : null);
+            }}
+            strategies={strategies}
+          />
+        )}
       </Modal>
     </div>
   );

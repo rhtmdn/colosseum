@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Single-user app: lock the default user doc
+    // When Firebase Auth is added, restrict to authenticated user only:
+    // allow read, write: if request.auth != null && request.auth.uid == 'YOUR_UID';
+    match /users/default_user_v1 {
+      allow read, write: if true; // TODO: lock once auth is added
+    }
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

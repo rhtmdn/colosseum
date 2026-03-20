@@ -4,6 +4,7 @@ import ByInstrument from '../components/analytics/ByInstrument';
 import ByStrategy from '../components/analytics/ByStrategy';
 import PerformanceHeatmap from '../components/analytics/PerformanceHeatmap';
 import EquityChart from '../components/dashboard/EquityChart';
+import EmptyState from '../components/common/EmptyState';
 import type { Trade, PortfolioStats, DailyStats } from '../types';
 import { formatCurrency } from '../utils/calculations';
 
@@ -15,6 +16,22 @@ interface Props {
 }
 
 export default function AnalyticsPage({ trades, stats, dailyStats, equityCurve }: Props) {
+  if (trades.filter(t => t.status !== 'OPEN').length < 3) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Analytics</h1>
+          <p className="text-sm text-gray-500 mt-1">Deep dive into trading performance</p>
+        </div>
+        <EmptyState
+          title="Not enough data"
+          description="Need at least 3 closed trades to generate meaningful analytics. Keep logging your trades."
+          minTrades={3}
+        />
+      </div>
+    );
+  }
+
   const closed = trades.filter(t => t.status !== 'OPEN');
   const longTrades = closed.filter(t => t.side === 'LONG');
   const shortTrades = closed.filter(t => t.side === 'SHORT');

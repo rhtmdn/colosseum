@@ -149,7 +149,7 @@ export function getEquityCurve(trades: Trade[], initialBalance: number = 0): { d
 }
 
 export function formatCurrency(value: number): string {
-  const sign = value >= 0 ? '+' : '';
+  const sign = value >= 0 ? '+' : '-';
   return `${sign}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -167,4 +167,21 @@ export function pnlBgColor(value: number): string {
   if (value > 0) return 'bg-profit-bg';
   if (value < 0) return 'bg-loss-bg';
   return 'bg-gray-800';
+}
+
+export function formatPrice(price: number, instrument: string): string {
+  const s = instrument.toUpperCase();
+  // Gold/Silver
+  if (s.includes('XAU') || s.includes('XAG')) return price.toFixed(2);
+  // Crypto
+  if (s.includes('BTC') || s.includes('ETH')) return price.toFixed(2);
+  // JPY pairs (USDJPY, EURJPY, GBPJPY, etc.) — 3 decimals
+  if (s.includes('JPY')) return price.toFixed(3);
+  // Other major forex pairs — 5 decimals
+  if ((s.includes('EUR') || s.includes('GBP') || s.includes('AUD') || s.includes('NZD') || s.includes('CHF') || s.includes('CAD')) &&
+      (s.includes('USD') || s.includes('EUR') || s.includes('GBP'))) {
+    return price.toFixed(5);
+  }
+  // Default: 2 decimals (stocks, futures, indices)
+  return price.toFixed(2);
 }

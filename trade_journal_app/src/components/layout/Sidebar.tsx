@@ -7,6 +7,7 @@ import {
   BarChart3,
   PlusCircle,
   Upload,
+  Download,
   ChevronDown,
   Plus,
   Trash2,
@@ -15,6 +16,7 @@ import {
   Settings,
 } from 'lucide-react';
 import type { Portfolio } from '../../types';
+import type { SyncStatus } from '../../store/useTradeStore';
 import ColosseumLogo from './ColosseumLogo';
 
 const links = [
@@ -27,22 +29,31 @@ const links = [
 interface SidebarProps {
   onAddTrade: () => void;
   onImportCsv: () => void;
+  onExport: () => void;
   portfolios: Portfolio[];
   activePortfolio: Portfolio;
   onSwitchPortfolio: (id: string) => void;
   onAddPortfolio: (name: string, color: string, initialBalance: number) => void;
   onDeletePortfolio: (id: string) => void;
   onPortfolioSettings: () => void;
+  syncStatus: SyncStatus;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
 
 const PORTFOLIO_COLORS = ['#6366f1', '#22c55e', '#ef4444', '#f59e0b', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6'];
 
+const SYNC_LABELS: Record<SyncStatus, { color: string; text: string }> = {
+  synced: { color: 'bg-profit', text: 'Synced' },
+  syncing: { color: 'bg-yellow-500', text: 'Syncing...' },
+  error: { color: 'bg-loss', text: 'Sync error' },
+  offline: { color: 'bg-gray-500', text: 'Offline' },
+};
+
 export default function Sidebar({
-  onAddTrade, onImportCsv, portfolios, activePortfolio,
+  onAddTrade, onImportCsv, onExport, portfolios, activePortfolio,
   onSwitchPortfolio, onAddPortfolio, onDeletePortfolio, onPortfolioSettings,
-  mobileOpen, onMobileClose,
+  syncStatus, mobileOpen, onMobileClose,
 }: SidebarProps) {
   const [portfolioOpen, setPortfolioOpen] = useState(false);
   const [addingPortfolio, setAddingPortfolio] = useState(false);
@@ -201,13 +212,22 @@ export default function Sidebar({
       </nav>
 
       <div className="p-3 border-t border-border space-y-2">
-        <button
-          onClick={() => { onImportCsv(); onMobileClose(); }}
-          className="w-full flex items-center justify-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border text-gray-300 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-        >
-          <Upload size={16} />
-          Import CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { onImportCsv(); onMobileClose(); }}
+            className="flex-1 flex items-center justify-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border text-gray-300 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+          >
+            <Upload size={16} />
+            Import
+          </button>
+          <button
+            onClick={() => { onExport(); onMobileClose(); }}
+            className="flex-1 flex items-center justify-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border text-gray-300 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+          >
+            <Download size={16} />
+            Export
+          </button>
+        </div>
         <button
           onClick={() => { onAddTrade(); onMobileClose(); }}
           className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer"
@@ -215,6 +235,10 @@ export default function Sidebar({
           <PlusCircle size={16} />
           New Trade
         </button>
+        <div className="flex items-center justify-center gap-1.5 pt-1">
+          <span className={`w-1.5 h-1.5 rounded-full ${SYNC_LABELS[syncStatus].color}`} />
+          <span className="text-[10px] text-gray-600">{SYNC_LABELS[syncStatus].text}</span>
+        </div>
       </div>
     </>
   );

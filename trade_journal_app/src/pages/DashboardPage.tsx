@@ -3,6 +3,7 @@ import StatCard from '../components/common/StatCard';
 import EquityChart from '../components/dashboard/EquityChart';
 import PnlBarChart from '../components/dashboard/PnlBarChart';
 import WinRateDonut from '../components/dashboard/WinRateDonut';
+import EmptyState from '../components/common/EmptyState';
 import type { Trade, PortfolioStats, DailyStats } from '../types';
 import { formatCurrency } from '../utils/calculations';
 
@@ -11,13 +12,32 @@ interface Props {
   stats: PortfolioStats;
   dailyStats: DailyStats[];
   equityCurve: { date: string; equity: number }[];
+  onAddTrade: () => void;
+  onImportCsv: () => void;
 }
 
-export default function DashboardPage({ trades, stats, dailyStats, equityCurve }: Props) {
+export default function DashboardPage({ trades, stats, dailyStats, equityCurve, onAddTrade, onImportCsv }: Props) {
   const closed = trades.filter(t => t.status !== 'OPEN');
   const wins = closed.filter(t => t.status === 'WIN').length;
   const losses = closed.filter(t => t.status === 'LOSS').length;
   const breakeven = closed.filter(t => t.status === 'BREAKEVEN').length;
+
+  if (trades.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">Performance overview across all trades</p>
+        </div>
+        <EmptyState
+          title="No trades yet"
+          description="Start tracking your trades to see performance metrics, equity curves, and analytics."
+          onAddTrade={onAddTrade}
+          onImportCsv={onImportCsv}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -38,6 +38,15 @@ export interface Transaction {
   note: string;
 }
 
+export interface Goals {
+  profitTarget: number;     // absolute $ target
+  maxDailyLoss: number;     // max loss in a single day
+  maxTotalLoss: number;     // max total drawdown
+  minTradingDays: number;   // minimum days traded
+  startDate: string;        // ISO date for challenge period start
+  endDate: string;          // ISO date for challenge period end (empty = no deadline)
+}
+
 export interface Portfolio {
   id: string;
   name: string;
@@ -45,6 +54,7 @@ export interface Portfolio {
   createdAt: string;
   initialBalance: number;
   transactions: Transaction[];
+  goals?: Goals;
 }
 
 export interface DailyStats {
@@ -91,10 +101,13 @@ export interface FilterState {
 
 export interface JournalEntry {
   id: string;
-  date: string;
+  date: string; // yyyy-MM-dd
   preMarket: string;
   postMarket: string;
   mood: number; // 1-5
   lessons: string;
   mistakes: string;
+  marketContext: string;
+  bias: 'BULLISH' | 'BEARISH' | 'NEUTRAL' | '';
+  keyLevels: string;
 }

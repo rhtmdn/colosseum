@@ -44,7 +44,7 @@ export function saveActivePortfolioId(id: string): void {
 
 export function loadTrades(): Trade[] {
   const raw = localStorage.getItem(TRADES_KEY);
-  if (!raw) return generateMockTrades();
+  if (!raw) return [];
   const trades: Trade[] = JSON.parse(raw);
   // Migrate trades without portfolioId
   return trades.map(t => ({ ...t, portfolioId: t.portfolioId || 'default' }));
@@ -109,12 +109,31 @@ function detectAssetClass(symbol: string): AssetClass {
   return 'Stocks';
 }
 
+type CsvFormat = 'mt5' | 'ibkr' | 'unknown';
+
+function detectCsvFormat(headers: string[]): CsvFormat {
+  const h = headers.map(s => s.trim().toLowerCase());
+  // MT5: has 'open time', 'close time', 'open price', 'close price'
+  if (h.includes('open time') && h.includes('close time') && h.includes('open price')) return 'mt5';
+  // IBKR Flex: has 'symbol', 'date/time' or 'datetime', 'quantity', 't. price' or 'tradeprice'
+  if ((h.includes('symbol') || h.includes('underlying symbol')) &&
+      (h.includes('date/time') || h.includes('datetime') || h.includes('tradedate'))) return 'ibkr';
+  return 'unknown';
+}
+
 export function parseCsvTrades(csvText: string, portfolioId: string): Trade[] {
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) return [];
 
-  // Parse header
   const header = parseCsvLine(lines[0]);
+  const format = detectCsvFormat(header);
+
+  if (format === 'ibkr') return parseIbkrCsv(lines, header, portfolioId);
+  // Default to MT5 format
+  return parseMt5Csv(lines, header, portfolioId);
+}
+
+function parseMt5Csv(lines: string[], header: string[], portfolioId: string): Trade[] {
   const colMap = new Map<string, number>();
   header.forEach((h, i) => colMap.set(h.trim().toLowerCase(), i));
 
@@ -129,12 +148,11 @@ export function parseCsvTrades(csvText: string, portfolioId: string): Trade[] {
     const row = parseCsvLine(lines[i]);
     if (row.length < header.length) continue;
 
-    // Skip totals/summary rows
     const typeVal = get(row, 'type');
     if (!typeVal || typeVal === '') continue;
     if (get(row, 'login').toLowerCase() === 'totals') continue;
 
-    const symbol = get(row, 'symbol').replace(/\.+$/, ''); // Strip trailing dots
+    const symbol = get(row, 'symbol').replace(/\.+$/, '');
     if (!symbol) continue;
 
     const side = typeVal.toUpperCase() === 'SELL' ? 'SHORT' as const : 'LONG' as const;
@@ -150,7 +168,7 @@ export function parseCsvTrades(csvText: string, portfolioId: string): Trade[] {
     const entryDate = parseMt5Date(openTime);
     const exitDate = parseMt5Date(closeTime);
 
-    const trade: Trade = {
+    trades.push({
       id: crypto.randomUUID(),
       portfolioId,
       instrument: symbol,
@@ -163,7 +181,6 @@ export function parseCsvTrades(csvText: string, portfolioId: string): Trade[] {
       exitDate,
       strategy: '',
       setup: '',
-      // Use the broker-reported profit directly as netPnl
       pnl: profit,
       fees: 0,
       netPnl: profit,
@@ -171,13 +188,93 @@ export function parseCsvTrades(csvText: string, portfolioId: string): Trade[] {
       stopLoss: null,
       takeProfit: null,
       notes: `Order #${get(row, 'order')}`,
-      tags: ['Imported'],
+      tags: ['Imported', 'MT5'],
       rating: 3,
       screenshots: [],
       status: profit > 0 ? 'WIN' : profit < 0 ? 'LOSS' : 'BREAKEVEN',
-    };
+    });
+  }
 
-    trades.push(trade);
+  return trades.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
+}
+
+function parseIbkrCsv(lines: string[], header: string[], portfolioId: string): Trade[] {
+  const colMap = new Map<string, number>();
+  header.forEach((h, i) => colMap.set(h.trim().toLowerCase(), i));
+
+  const get = (row: string[], key: string): string => {
+    const idx = colMap.get(key);
+    return idx !== undefined ? (row[idx] || '').trim() : '';
+  };
+
+  // Try multiple column name variants IBKR uses
+  const getAny = (row: string[], ...keys: string[]): string => {
+    for (const k of keys) {
+      const v = get(row, k);
+      if (v) return v;
+    }
+    return '';
+  };
+
+  const trades: Trade[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCsvLine(lines[i]);
+    if (row.length < 3) continue;
+
+    const symbol = getAny(row, 'symbol', 'underlying symbol').replace(/\s+/g, '');
+    if (!symbol) continue;
+
+    // Skip header/section rows
+    const dataType = get(row, 'datadiscriminator');
+    if (dataType && dataType.toLowerCase() !== 'order') continue;
+
+    const qty = parseFloat(getAny(row, 'quantity', 'qty'));
+    const price = parseFloat(getAny(row, 't. price', 'tradeprice', 'price'));
+    const proceeds = parseFloat(getAny(row, 'proceeds', 'amount'));
+    const commission = parseFloat(getAny(row, 'comm/fee', 'ibcommission', 'commission')) || 0;
+    const realizedPnl = parseFloat(getAny(row, 'realized p/l', 'realizedpl', 'mtm p/l'));
+    const dateStr = getAny(row, 'date/time', 'datetime', 'tradedate');
+
+    if (isNaN(price) || isNaN(qty) || !dateStr) continue;
+
+    const side = qty > 0 ? 'LONG' as const : 'SHORT' as const;
+    const absQty = Math.abs(qty);
+
+    // Parse IBKR date formats: "2025-01-15, 10:30:00" or "20250115" or "2025-01-15T10:30:00"
+    let entryDate: string;
+    const cleaned = dateStr.replace(/,\s*/g, 'T').replace(/\s+/g, 'T');
+    const d = new Date(cleaned.includes('T') ? cleaned : cleaned.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+    entryDate = isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+
+    const netPnl = !isNaN(realizedPnl) ? realizedPnl : (!isNaN(proceeds) ? proceeds + commission : 0);
+    const grossPnl = netPnl + Math.abs(commission);
+
+    trades.push({
+      id: crypto.randomUUID(),
+      portfolioId,
+      instrument: symbol,
+      assetClass: detectAssetClass(symbol),
+      side,
+      entryPrice: price,
+      exitPrice: price, // IBKR shows execution price, not entry/exit pairs
+      quantity: absQty,
+      entryDate,
+      exitDate: entryDate,
+      strategy: '',
+      setup: '',
+      pnl: grossPnl,
+      fees: Math.abs(commission),
+      netPnl,
+      rMultiple: null,
+      stopLoss: null,
+      takeProfit: null,
+      notes: '',
+      tags: ['Imported', 'IBKR'],
+      rating: 3,
+      screenshots: [],
+      status: netPnl > 0 ? 'WIN' : netPnl < 0 ? 'LOSS' : 'BREAKEVEN',
+    });
   }
 
   return trades.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
@@ -215,76 +312,3 @@ function parseMt5Date(dateStr: string): string {
   return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
 }
 
-// --- Mock data ---
-
-function generateMockTrades(): Trade[] {
-  const instruments = ['XAUUSD', 'AAPL', 'TSLA', 'ES', 'NQ', 'XAGUSD', 'SPY', 'NVDA', 'AMZN', 'META'];
-  const strategies = ['VWAP Bounce', 'PDH/PDL Break', 'Liquidity Sweep', 'Mean Reversion', 'Momentum Break', 'AVWAP Reclaim'];
-  const setups = ['A+', 'A', 'B+', 'B', 'C'];
-  const assetClasses: Trade['assetClass'][] = ['Forex', 'Stocks', 'Futures', 'Stocks', 'Futures', 'Forex', 'Stocks', 'Stocks', 'Stocks', 'Stocks'];
-  const tags = ['AMT', 'Volume Profile', 'Sweep', 'Breakout', 'Reversal', 'Trend'];
-
-  const trades: Trade[] = [];
-  const today = new Date();
-
-  for (let i = 0; i < 85; i++) {
-    const daysAgo = Math.floor(Math.random() * 90);
-    const entryDate = new Date(today);
-    entryDate.setDate(entryDate.getDate() - daysAgo);
-
-    if (entryDate.getDay() === 0 || entryDate.getDay() === 6) continue;
-
-    const exitDate = new Date(entryDate);
-    exitDate.setHours(exitDate.getHours() + Math.floor(Math.random() * 6) + 1);
-
-    const instIdx = Math.floor(Math.random() * instruments.length);
-    const instrument = instruments[instIdx];
-    const side: Trade['side'] = Math.random() > 0.45 ? 'LONG' : 'SHORT';
-
-    let entryPrice: number;
-    let priceMove: number;
-
-    switch (instrument) {
-      case 'XAUUSD': entryPrice = 2300 + Math.random() * 100; priceMove = (Math.random() - 0.42) * 30; break;
-      case 'XAGUSD': entryPrice = 28 + Math.random() * 4; priceMove = (Math.random() - 0.42) * 2; break;
-      case 'ES': entryPrice = 5200 + Math.random() * 200; priceMove = (Math.random() - 0.42) * 40; break;
-      case 'NQ': entryPrice = 18000 + Math.random() * 1000; priceMove = (Math.random() - 0.42) * 150; break;
-      default: entryPrice = 150 + Math.random() * 200; priceMove = (Math.random() - 0.42) * 15; break;
-    }
-
-    const exitPrice = entryPrice + (side === 'LONG' ? priceMove : -priceMove);
-    const quantity = instrument === 'XAUUSD' ? Math.ceil(Math.random() * 5) :
-      instrument === 'ES' || instrument === 'NQ' ? Math.ceil(Math.random() * 3) :
-        Math.ceil(Math.random() * 100);
-
-    const fees = Math.random() * 10 + 1;
-    const stopDist = Math.abs(priceMove) * (0.3 + Math.random() * 0.7);
-    const stopLoss = side === 'LONG' ? entryPrice - stopDist : entryPrice + stopDist;
-
-    const tradeInput = {
-      portfolioId: 'default',
-      instrument,
-      assetClass: assetClasses[instIdx],
-      side,
-      entryPrice: Math.round(entryPrice * 100) / 100,
-      exitPrice: Math.round(exitPrice * 100) / 100,
-      quantity,
-      entryDate: entryDate.toISOString(),
-      exitDate: exitDate.toISOString(),
-      strategy: strategies[Math.floor(Math.random() * strategies.length)],
-      setup: setups[Math.floor(Math.random() * setups.length)],
-      fees: Math.round(fees * 100) / 100,
-      stopLoss: Math.round(stopLoss * 100) / 100,
-      takeProfit: null,
-      notes: '',
-      tags: [tags[Math.floor(Math.random() * tags.length)]],
-      rating: Math.ceil(Math.random() * 5),
-    };
-
-    trades.push(createTrade(tradeInput));
-  }
-
-  trades.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
-  saveTrades(trades);
-  return trades;
-}

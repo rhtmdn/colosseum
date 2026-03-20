@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { Trade, FilterState, JournalEntry, Portfolio, Transaction } from '../types';
@@ -8,6 +8,8 @@ import {
   parseCsvTrades,
 } from './trades';
 import { getPortfolioStats, getDailyStats, getEquityCurve } from '../utils/calculations';
+
+export type SyncStatus = 'synced' | 'syncing' | 'error' | 'offline';
 
 const defaultFilter: FilterState = {
   dateFrom: '',
@@ -28,37 +30,68 @@ export function useTradeStore() {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(loadJournalEntries);
   const [portfolios, setPortfolios] = useState<Portfolio[]>(loadPortfolios);
   const [activePortfolioId, setActivePortfolioIdState] = useState<string>(loadActivePortfolioId);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('syncing');
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper to sync to Firestore with status tracking
+  const syncToFirestore = useCallback((data: Record<string, unknown>) => {
+    setSyncStatus('syncing');
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    setDoc(DOC_REF, data, { merge: true })
+      .then(() => {
+        setSyncStatus('synced');
+        syncTimerRef.current = setTimeout(() => setSyncStatus('synced'), 2000);
+      })
+      .catch((err) => {
+        console.error('Firestore sync error:', err);
+        setSyncStatus('error');
+      });
+  }, []);
 
   // Firestore Sync Effect
   useEffect(() => {
     const unsub = onSnapshot(DOC_REF, (snap) => {
+      setSyncStatus('synced');
       if (snap.exists()) {
         const data = snap.data();
         if (data.trades) { setTrades(data.trades); saveTrades(data.trades); }
-        if (data.portfolios) { 
+        if (data.portfolios) {
           // Migrate portfolios from firestore
           const migratedPortfolios = data.portfolios.map((p: any) => ({
             ...p,
             initialBalance: p.initialBalance ?? 0,
             transactions: p.transactions ?? []
           }));
-          setPortfolios(migratedPortfolios); 
-          savePortfolios(migratedPortfolios); 
+          setPortfolios(migratedPortfolios);
+          savePortfolios(migratedPortfolios);
         }
         if (data.activePortfolioId) { setActivePortfolioIdState(data.activePortfolioId); saveActivePortfolioId(data.activePortfolioId); }
-        if (data.journalEntries) { setJournalEntries(data.journalEntries); saveJournalEntries(data.journalEntries); }
+        if (data.journalEntries) {
+          // Migrate legacy journal entries
+          const migrated = data.journalEntries.map((e: any) => ({
+            ...e,
+            marketContext: e.marketContext ?? '',
+            bias: e.bias ?? '',
+            keyLevels: e.keyLevels ?? '',
+          }));
+          setJournalEntries(migrated);
+          saveJournalEntries(migrated);
+        }
       } else {
         // Init cloud database with local data if it doesn't exist yet
-        setDoc(DOC_REF, {
+        syncToFirestore({
           trades: loadTrades(),
           portfolios: loadPortfolios(),
           activePortfolioId: loadActivePortfolioId(),
           journalEntries: loadJournalEntries()
-        }, { merge: true }).catch(console.error);
+        });
       }
+    }, (err) => {
+      console.error('Firestore listener error:', err);
+      setSyncStatus('error');
     });
     return unsub;
-  }, []);
+  }, [syncToFirestore]);
 
   const activePortfolio = useMemo(
     () => portfolios.find(p => p.id === activePortfolioId) || portfolios[0],
@@ -68,32 +101,32 @@ export function useTradeStore() {
   const setActivePortfolioId = useCallback((id: string) => {
     setActivePortfolioIdState(id);
     saveActivePortfolioId(id);
-    setDoc(DOC_REF, { activePortfolioId: id }, { merge: true }).catch(console.error);
-  }, []);
+    syncToFirestore({ activePortfolioId: id });
+  }, [syncToFirestore]);
 
   const addPortfolio = useCallback((name: string, color: string, initialBalance: number = 0) => {
     const p: Portfolio = { id: crypto.randomUUID(), name, color, createdAt: new Date().toISOString(), initialBalance, transactions: [] };
     setPortfolios(prev => {
       const next = [...prev, p];
       savePortfolios(next);
-      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ portfolios: next });
       return next;
     });
     return p;
-  }, []);
+  }, [syncToFirestore]);
 
   const deletePortfolio = useCallback((id: string) => {
     setPortfolios(prev => {
       const next = prev.filter(p => p.id !== id);
       savePortfolios(next);
-      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ portfolios: next });
       return next;
     });
     // Remove trades in that portfolio
     setTrades(prev => {
       const next = prev.filter(t => t.portfolioId !== id);
       saveTrades(next);
-      setDoc(DOC_REF, { trades: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ trades: next });
       return next;
     });
     
@@ -110,7 +143,7 @@ export function useTradeStore() {
     setPortfolios(prev => {
       const next = prev.map(p => p.id === id ? { ...p, name } : p);
       savePortfolios(next);
-      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ portfolios: next });
       return next;
     });
   }, []);
@@ -119,7 +152,7 @@ export function useTradeStore() {
     setPortfolios(prev => {
       const next = prev.map(p => p.id === id ? { ...p, ...updates } : p);
       savePortfolios(next);
-      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ portfolios: next });
       return next;
     });
   }, []);
@@ -138,7 +171,7 @@ export function useTradeStore() {
         return { ...p, transactions: [tx, ...(p.transactions || [])] };
       });
       savePortfolios(next);
-      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ portfolios: next });
       return next;
     });
     return tx;
@@ -151,7 +184,7 @@ export function useTradeStore() {
         return { ...p, transactions: (p.transactions || []).filter(tx => tx.id !== transactionId) };
       });
       savePortfolios(next);
-      setDoc(DOC_REF, { portfolios: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ portfolios: next });
       return next;
     });
   }, []);
@@ -160,7 +193,7 @@ export function useTradeStore() {
     setTrades(prev => {
       const next = updater(prev);
       saveTrades(next);
-      setDoc(DOC_REF, { trades: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ trades: next });
       return next;
     });
   }, []);
@@ -169,6 +202,16 @@ export function useTradeStore() {
     const trade = createTrade(input);
     updateTrades(prev => [trade, ...prev]);
     return trade;
+  }, [updateTrades]);
+
+  const parseCsvText = useCallback((csvText: string): Trade[] => {
+    return parseCsvTrades(csvText, activePortfolioId);
+  }, [activePortfolioId]);
+
+  const bulkAddTrades = useCallback((incoming: Trade[]) => {
+    if (incoming.length > 0) {
+      updateTrades(prev => [...incoming, ...prev]);
+    }
   }, [updateTrades]);
 
   const importCsvTrades = useCallback((csvText: string) => {
@@ -226,10 +269,10 @@ export function useTradeStore() {
     setJournalEntries(prev => {
       const next = [entry, ...prev.filter(e => e.date !== entry.date)];
       saveJournalEntries(next);
-      setDoc(DOC_REF, { journalEntries: next }, { merge: true }).catch(console.error);
+      syncToFirestore({ journalEntries: next });
       return next;
     });
-  }, []);
+  }, [syncToFirestore]);
 
   return {
     trades,
@@ -239,6 +282,8 @@ export function useTradeStore() {
     addTrade,
     updateTrade,
     deleteTrade,
+    parseCsvText,
+    bulkAddTrades,
     importCsvTrades,
     stats,
     dailyStats,
@@ -259,5 +304,6 @@ export function useTradeStore() {
     updatePortfolio,
     addTransaction,
     deleteTransaction,
+    syncStatus,
   };
 }

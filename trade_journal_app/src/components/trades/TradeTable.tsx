@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ArrowUpDown, Trash2, Eye } from 'lucide-react';
 import type { Trade } from '../../types';
-import { formatCurrency, pnlColor } from '../../utils/calculations';
+import { formatCurrency, pnlColor, formatPrice } from '../../utils/calculations';
 
 interface Props {
   trades: Trade[];
@@ -83,8 +83,8 @@ export default function TradeTable({ trades, onView, onDelete }: Props) {
                 </span>
               </td>
               <td className="px-4 py-3 text-sm text-gray-400">{trade.strategy}</td>
-              <td className="px-4 py-3 text-sm text-gray-300 font-mono">{trade.entryPrice.toFixed(2)}</td>
-              <td className="px-4 py-3 text-sm text-gray-300 font-mono">{trade.exitPrice?.toFixed(2) ?? '—'}</td>
+              <td className="px-4 py-3 text-sm text-gray-300 font-mono">{formatPrice(trade.entryPrice, trade.instrument)}</td>
+              <td className="px-4 py-3 text-sm text-gray-300 font-mono">{trade.exitPrice !== null ? formatPrice(trade.exitPrice, trade.instrument) : '—'}</td>
               <td className="px-4 py-3 text-sm text-gray-400">{trade.quantity}</td>
               <td className={`px-4 py-3 text-sm font-bold ${pnlColor(trade.netPnl)}`}>
                 {formatCurrency(trade.netPnl)}
@@ -111,7 +111,11 @@ export default function TradeTable({ trades, onView, onDelete }: Props) {
                     <Eye size={14} />
                   </button>
                   <button
-                    onClick={() => onDelete(trade.id)}
+                    onClick={() => {
+                      if (window.confirm(`Delete ${trade.instrument} ${trade.side} trade (${trade.netPnl >= 0 ? '+' : ''}$${trade.netPnl.toFixed(2)})?`)) {
+                        onDelete(trade.id);
+                      }
+                    }}
                     className="p-1.5 rounded hover:bg-red-900/30 text-gray-500 hover:text-loss transition-colors cursor-pointer"
                   >
                     <Trash2 size={14} />
