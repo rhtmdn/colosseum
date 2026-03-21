@@ -38,8 +38,9 @@ export default function TradeTable({ trades, onView, onDelete }: Props) {
     return sortDir === 'asc' ? cmp : -cmp;
   });
 
-  const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
+  const renderSortHeader = (label: string, k: SortKey) => (
     <th
+      key={k}
       className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3 cursor-pointer hover:text-gray-300 transition-colors"
       onClick={() => handleSort(k)}
     >
@@ -55,15 +56,15 @@ export default function TradeTable({ trades, onView, onDelete }: Props) {
       <table className="w-full">
         <thead className="bg-surface-2">
           <tr>
-            <SortHeader label="Date" k="entryDate" />
-            <SortHeader label="Instrument" k="instrument" />
-            <SortHeader label="Side" k="side" />
-            <SortHeader label="Strategy" k="strategy" />
+            {renderSortHeader("Date", "entryDate")}
+            {renderSortHeader("Instrument", "instrument")}
+            {renderSortHeader("Side", "side")}
+            {renderSortHeader("Strategy", "strategy")}
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Entry</th>
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Exit</th>
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Qty</th>
-            <SortHeader label="P&L" k="netPnl" />
-            <SortHeader label="R" k="rMultiple" />
+            {renderSortHeader("P&L", "netPnl")}
+            {renderSortHeader("R", "rMultiple")}
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
             <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Actions</th>
           </tr>

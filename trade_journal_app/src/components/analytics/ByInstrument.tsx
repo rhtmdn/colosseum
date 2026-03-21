@@ -42,7 +42,7 @@ export default function ByInstrument({ trades }: Props) {
             />
             <Tooltip
               contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }}
-              formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'P&L']}
+              formatter={(value: number | string | undefined) => [`$${Number(value || 0).toFixed(2)}`, 'P&L']}
             />
             <Bar dataKey="pnl" radius={[0, 4, 4, 0]}>
               {data.map((d, i) => (

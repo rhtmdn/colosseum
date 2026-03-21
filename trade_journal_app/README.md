@@ -1,73 +1,68 @@
-# React + TypeScript + Vite
+# Trade Journal App (Colosseum)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive, modern React web application for traders to log, analyze, and review their trading performance across multiple portfolios.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Portfolio Management:** Create, manage, and switch between different trading portfolios, each with an initial balance and distinct color-coding.
+- **Trade Logging:** Manually add trades or import them in bulk via CSV. Track essential metrics like instrument, asset class, side, entry/exit prices, quantity, dates, strategies, setups, PnL, fees, stop loss, take profit, R-multiple, and tags.
+- **Comprehensive Analytics:** Detailed dashboard featuring portfolio statistics (win rate, profit factor, average win/loss, max drawdown, Sharpe ratio) and equity curve charts using Recharts.
+- **Calendar View:** Visualize trading days, daily PnL, wins/losses, and volume directly on a calendar interface.
+- **Filtering & Search:** Easily filter trades by date, instrument, strategy, side, asset class, status, and custom tags.
+- **Daily Journaling:** Keep notes on pre-market preparation, post-market reflections, mood, lessons learned, and mistakes.
+- **Cloud Sync:** Uses Firebase Firestore for real-time data persistence and synchronization across devices.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend Framework:** React 19, Vite, TypeScript
+- **Styling:** Tailwind CSS 4
+- **Routing:** React Router DOM (HashRouter)
+- **Data Visualization:** Recharts
+- **Date Handling:** date-fns
+- **Icons:** Lucide React
+- **Backend & Database:** Firebase Firestore
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js (v18 or higher recommended)
+- npm or yarn
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd trade_journal_app
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   The app will typically be available at `http://localhost:5173`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Firebase Configuration
+
+The application is pre-configured to use a specific Firebase project (`colosseum-a7f03`). To use your own Firebase database:
+1. Create a new project in the [Firebase Console](https://console.firebase.google.com/).
+2. Enable Firestore Database.
+3. Update the `firebaseConfig` object in `src/config/firebase.ts` with your project's credentials.
+
+## Scripts
+
+- `npm run dev` - Starts the Vite development server.
+- `npm run build` - Type-checks the application and builds for production.
+- `npm run preview` - Locally previews the production build.
+- `npm run lint` - Runs ESLint to check for code quality issues.
+- `npm run deploy` - Deploys the built app to GitHub Pages using `gh-pages`.
+
+## License
+
+This project is private and intended for internal use.
